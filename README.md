@@ -19,7 +19,7 @@ M1 | 10 | 14.02.2025 П'ятниця | 19:00 | Data Wrangling 1                 
 M1 | 11 | 17.02.2025 Понеділок | 19:00 | Data Wrangling 2                            | Oleksandr Shynkarenko                           |
 **M2** | **1** | **19.02.2025 Середа** | 19:00 | Introduction to sequencing technologies                             | Valeriia Vasylieva & Anna Diamant                           |
 M1 | 12 | 21.02.2025 П'ятниця | 19:00 | Reproducible R pipelines. R + Docker                            | Oleksandr Petrenko                           |
-**M2** | 2 | 23.02.2025 Неділя | 19:00 |  Foundations of multidimensional data visualization                             | Serhiy Naumenko
+**M2** | 2 | **22.02.2025 Субота** | 19:00 |  Foundations of multidimensional data visualization                             | Serhiy Naumenko
 M1 | 13 | 24.02.2025 Понеділок | 19:00 | Constructing and working in conda environments                            | Oleksandr Petrenko                           |
 **M2** | 3 | 26.02.2025 Середа | 19:00 |  Single-cell RNA-seq analysis 1 | Maryna Korshevniuk |
 M1 | 14 | 01.03.2025 П'ятниця | 19:00 | Introduction to machine learning with R (caret et al.)                            | Valeriia Vasylieva                           |
