@@ -1,6 +1,7 @@
 # 2025q1-daad-course
 
-Link to the course at [lifescience](http://lifesciencescourse.org/en/introduction-r-and-rna-sequencing).
+Посилання на курс на [LifeSciencesCourse](http://lifesciencescourse.org/en/introduction-r-and-rna-sequencing).
+Посилання на нашому сайті [genomics.org.ua](https://genomics.org.ua/tag/2025-scrnaseq-spatial/).
 
 Розклад:
 Курс складається з двух модулей (М1 і М2). Деякі семінари/лекції (S) з обох модулів перекриваються по тижням (виділино жирним курсивом).
