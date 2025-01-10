@@ -1,10 +1,10 @@
 # 2025q1-daad-course
 
-Посилання на курс на [LifeSciencesCourse](http://lifesciencescourse.org/en/introduction-r-and-rna-sequencing).
+Посилання на курс на [LifeSciencesCourse](http://lifesciencescourse.org/en/introduction-r-and-rna-sequencing).  
 Посилання на нашому сайті [genomics.org.ua](https://genomics.org.ua/tag/2025-scrnaseq-spatial/).
 
 Розклад:
-Курс складається з двух модулей (М1 і М2). Деякі семінари/лекції (S) з обох модулів перекриваються по тижням (виділино жирним курсивом).
+Курс складається з двох модулів (М1 і М2). Деякі семінари/лекції (S) з обох модулів перекриваються по тижнях (виділено жирним курсивом).
 M | S | Дата                | Час (EET)   | Тема                                                            | Викладач                                    |
 --|--|---------------------|-------|-----------------------------------------------------------------|---------------------------------------------|
 M1 | 1 | 13.01.2025 Понеділок | 19:00 | R syntax and data types                                           | Dariia Mykhailyshyna                           |
