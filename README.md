@@ -1,4 +1,4 @@
-# Курс Геноміки ЮА по біологіїї поодиноких клітин й просторовій біології (колаборація LifeSciencesCourse та DAAD)
+# Курс Геноміки ЮА з біологіїї поодиноких клітин й просторовій біології (колаборація LifeSciencesCourse та DAAD)
 
 Посилання на курс на [LifeSciencesCourse](http://lifesciencescourse.org/en/introduction-r-and-rna-sequencing).  
 Посилання на нашому сайті [genomics.org.ua](https://genomics.org.ua/tag/2025-scrnaseq-spatial/).
