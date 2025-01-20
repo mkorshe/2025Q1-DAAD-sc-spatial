@@ -35,7 +35,7 @@ flights <-  read_csv('3.Introduction to Tidyverse/flights.csv')
 ##Difference between read_csv, read_delim and read_csv2
 ##Explore some options
 #You can save files in a similar way, using write_csv instead of read_csv
-write_csv(flights, ' flights_new.csv')
+write_csv(flights, 'flights_new.csv')
 
 ##Step 3. Exploring data ###
 data('flights')
@@ -128,7 +128,9 @@ flights_selected |> mutate(delayed = ifelse(arr_delay>0,1,0),
 #Only keeps variables that were used in calculations
 #More options:
 ?mutate
+#You can also use across() to apply the same function to multiple variables
 
+flights_selected <- flights_selected |> mutate(across(starts_with('dep'), \(x) round(x)))
 
 ##Removing duplicate rows
 flights_selected <- flights_selected |> distinct()
@@ -231,6 +233,7 @@ flights_short <- flights |> top_n(100) #Tidyverse
 flights |> 
   select(tailnum) |> 
   arrange(arr_delay)
+
 
 ### 2) what does function any_of do and when can it be useful?
 
