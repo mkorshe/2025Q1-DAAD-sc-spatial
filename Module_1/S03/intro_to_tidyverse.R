@@ -18,13 +18,13 @@
 #install.packages('haven')
 #install.packages('lubridate)
 library(tidyverse) #A set of packages
-library(haven) #To load .dta files
+library(haven) #To load .dta files .sav
 library(readr) #To read and write csv files
 library(nycflights13) ##Data for this workshop
 library(stargazer) #Summary statistics tables (and regression tables)
-
+library(readxl)
 #Setting working directory to the folder where your data is located
-#setwd('pathtoyourfolder')
+setwd('pathtoyourfolder')
 #Or Session - Set working directory - Choose directory
 
 
@@ -36,6 +36,10 @@ flights <-  read_csv('3.Introduction to Tidyverse/flights.csv')
 ##Explore some options
 #You can save files in a similar way, using write_csv instead of read_csv
 write_csv(flights, 'flights_new.csv')
+
+Sys.getlocale()
+
+Sys.setlocale('LC_ALL', 'Ukrainian_Ukraine.utf8')
 
 ##Step 3. Exploring data ###
 data('flights')
@@ -60,7 +64,7 @@ stargazer(as.data.frame(flights), type = 'text')
 #e.g.
 # https://evalsp21.classes.andrewheiss.com/projects/01_lab/slides/01_lab.html#116 
 #In some cases you will see |>  and in some %>%, they do the same thing
-
+#dplyr
 flights |> count(carrier) |> arrange(desc(n))
 ##Alternatively
 flights |> count(carrier, sort = TRUE)
@@ -74,21 +78,24 @@ flights_dep <- flights |> select(year, month, day, starts_with('dep'))
 # In a same way to starts_with() you can use ends_with() and contains()
 flights_no_time <- flights |> select(everything(), -hour, -minute, -time_hour)
 remove(flights_no_time, flights_dep)
-
+remove(list = ls()) #Remove all objects from the environment)
 #Selct variables from dep_time to arr_delay
 flights_selected2 <- flights |> select(dep_time:arr_delay)
 # Select all variables except those between dep_time and arr_delay
 
+flights |> select(everything(),year)
 ##Select all columns that are characters
 flights |> 
   select(where(is.character))
-
+?select
 
 ### Renaming columns
-flights |> rename(destination = dest) #New name then old name
+View(flights |> rename(destination = dest)) #New name then old name
+
+rrr <- flights |> rename(destination = dest)
 
 ###Filtering only relevant observations ####
-flights_december<- flights |> filter(month == 12)
+flights_december<- flights |> filter(month == 12| month == 1)
 
 
 # == exactly equal
@@ -111,11 +118,16 @@ flights_selected <- flights |> filter(month %in% months & origin == 'JFK')
 # Use | for or and ! for ! eg 
 #flights_selected <- flights |> filter(month %in% months & !(origin == 'JFK') )
 
+flights |> select(carrier) |>  arrange(carrier)
 
 #### Adding new variables
+which
+?case_when
 flights_selected <- flights_selected |> mutate(delayed = ifelse(arr_delay>0,1,0),
                                        time_gained = dep_delay - arr_delay,
                                        .before = 1)
+.after 
+
 
 ##.before = 1 means that we want to put these variables before the first variable in the dataset
 ## Similiarly, you can also use .after 
@@ -130,7 +142,12 @@ flights_selected |> mutate(delayed = ifelse(arr_delay>0,1,0),
 ?mutate
 #You can also use across() to apply the same function to multiple variables
 
-flights_selected <- flights_selected |> mutate(across(starts_with('dep'), \(x) round(x)))
+flights_selected <- flights_selected |> mutate(across(starts_with('dep'), \(x) round(x, digits = 2)))
+
+mutate_at(flights_selected, vars(starts_with('dep')), round)
+mutate_all(flights_selected, round)
+mutate_if()
+mutate_each()
 
 ##Removing duplicate rows
 flights_selected <- flights_selected |> distinct()
@@ -183,13 +200,15 @@ combined_data |> summarize(mean_delay = mean(arr_delay, na.rm = TRUE),
                             numb_delayed = sum(delayed, na.rm = TRUE),
                             prop_delayed = numb_delayed/numb_flights,
                             .by = month)
-
+?summarize_if
 ## You can also use slice functions with group_by to select a sample of each group
 #slice_head
 #slice_tail
 #slice_min
 #slice_max
 ?slice_sample
+
+slice_head(flights)
 
 flights |> 
   group_by(dest) |> 
@@ -223,8 +242,19 @@ flights_short <- flights[1:100, ] #base R
 flights_short <- flights |> top_n(100) #Tidyverse
 ##Looking at existing variables
 
+janitor R
+
+?rowwise
+?pivot_wider
 
 
+mutate(empty = NA)
+nrows(flights+1[NA])
+View(flights_selected |> filter(hour == 1 & ))
+
+rbind(flights_selected, flights_selected)
+
+flights <- flights
 
 ###### Exercises #####
 
