@@ -198,10 +198,10 @@ library(RColorBrewer)
 
 corrCoV <- read.csv("correlation_data.csv", header = TRUE)
 
-corrCoV$ParenchimeCT <- as.numeric(factor(corrCoV$ParenchimeCT))
-R <- cor(corrCoV, method = "kendall")
-
 corrCoV <- corrCoV[-1]
+corrCoV$ParenchimeCT <- as.numeric(factor(corrCoV$ParenchimeCT))
+
+R <- cor(corrCoV, method = "kendall")
 
 # проводимо кореляційний аналіз
 
@@ -232,7 +232,7 @@ corrplot(R, p.mat = testRes$p, method = "color",
             insig = "label_sig", tl.cex = 1.12,
             cl.ratio = 0.25, cl.length = 5, cl.cex = 1.35,
             cl.pos = "r", cl.offset = 0.25, cl.align.text = "l")
-legend(-5, 16, ncol = 1, cex = 4, legend = "A", text.font = 2, bty = "n")
+legend(-3, 10, ncol = 1, cex = 4, legend = "A", text.font = 2, bty = "n")
 
 # апроксимація в base за допомогою пакету minpack.lm
 
@@ -382,9 +382,6 @@ contour(Hgl.w1118.sfd, nlevels = 6, labcex = 0.75, add = TRUE)
 axis(1, c(20, 30, 40, 50), cex.axis = 1.25, las = 1)
 axis(2, c(210, 230, 250, 270), cex.axis = 1.25, las = 1)
 
-
-
-
 # Візуалізація дендрограм
 
 suppressPackageStartupMessages(library(ggdendro))
@@ -413,6 +410,8 @@ plot(tr, tip.col = c("firebrick", "forestgreen", "royalblue"),
                       main="Phylogenetic tree of ATP synthase epsilon subunit")
 
 # візуалізація кривих ROC
+
+library(pROC)
 
 appearance <- theme(
             aspect.ratio = 1,
@@ -455,3 +454,4 @@ ggarrange(p1, p2, labels = c("A", "B"), font.label = list(size = 72),
 # При малюванні задайте власні налаштування рисунків – кольори стовпчиків, похибок, зірочок,
 # кольорову схему для таблиці кореляцій і площини відповіді (наприклад, topo.colors, cm.colors
 # і тому подібне).
+
