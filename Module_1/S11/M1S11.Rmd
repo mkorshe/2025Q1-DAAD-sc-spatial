@@ -1,0 +1,177 @@
+---
+title: "M1S11"
+author: "Alex Shynkarenko"
+date: "2025-02-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rstatix)
+library(ggplot2)
+library(ggpubr)
+library(Rtsne)
+library(DT)
+```
+
+# Зберігання і відтворення об'єктів середовища R
+
+Часто з'являється необхідність зберігати і відновлювати об'єкти середовища R. Це можна зробити за допомогою функцій saveRDS() та readRDS()
+
+```{r rds, echo=FALSE, warning=FALSE}
+
+iris_mod <- iris * 10000
+
+iris_mod
+
+saveRDS(iris_mod, "iris_mod.rds")
+
+iris_mod <- 0
+
+iris_mod <- readRDS("iris_mod.rds")
+
+```
+
+# Дати
+
+R має вбудований тип для відображення дат, а також методи для перетворення строк в дати
+
+``` {r dates, echo=FALSE, warning=FALSE}
+
+date_strings <- c("1897-04-27",
+                  "2321-01-01",
+                  "1900-03-07")
+
+
+date_dates <- as.Date(date_strings)
+
+date_dates
+
+date_string_weird <- "y:2007, month - 12 and the day of 17"
+
+# date_dates[4] <- as.Date(date_string_weird) #видає помилку
+
+date_dates[4] <- as.Date(date_string_weird,
+                         format = "y:%Y, month - %m and the day of %d")
+
+date_dates[4]
+
+```
+
+
+# Видалення na
+
+В даних часто можуть з'являтися NA величини. Існує різні методики роботи з ними, в деяких випадках їх можна вилучити, але це залежить від вашого набору даних і що ви хочете з ним робити.
+
+```{r na, echo=FALSE, warning=FALSE}
+
+airquality
+
+airquality_no_na <- airquality[complete.cases(airquality),]
+
+airquality_no_na
+
+```
+
+# P-value
+
+p-value це вірогідність, що дані які ви отримали могли б бути отримані випадково згідно нульової гіпотези вашого тесту (тобто, наприклад, якщо б ваша нульова гіпотеза була "цей набір даних має нормальний розподіл", то це вірогідність . p-value менше певного значення (0.05) зазвичай значить що ваш результат статистично достовірний. 
+
+``` {r violin, echo=FALSE, warning=FALSE}
+
+
+significance_df <- iris %>% group_by(Species) %>% shapiro_test(Sepal.Length) # тест Шапіро-Вілка
+
+# significance_df # p-value вище 0.05 означає що розподіл нормальний
+
+
+# створюємо датафрейм з даними щодо p-value. Оскільки розподіл нормальний, то можемо використати t-test (у протилежному випадку використали б wilcox_test)
+
+pvalue_data <- iris %>%
+  t_test(Sepal.Width ~ Species) %>%
+  add_significance()
+
+pvalue_data <- pvalue_data %>% add_xy_position(x = "Species")
+
+
+x <- ggplot(data=iris,  aes(x=Species, y=Sepal.Width, color = Species)) + 
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() + 
+  stat_pvalue_manual(pvalue_data, label = "T-test, p = {p}")
+
+x
+
+```
+
+# Outlier detection
+
+Існує багато різних методів пошуку викидів (outliers). Один з найчастіших — це метод інтерквартильного інтервалу (IQR). За ним, всі значення, що знаходяться за q25-1.5\*IQR або q75+1.5\*IQR, вважаються викидами.
+
+``` {r IQR, echo=FALSE, warning=FALSE}
+
+x <- ggplot(data=iris,  aes(x=Species, y=Sepal.Length, color = Species)) + 
+  geom_boxplot() + # коробковий графік
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal()
+
+x
+
+iris_virginica <- iris[which(iris$Species == "virginica"),]
+
+boxplot.stats(iris_virginica$Sepal.Length) #дає статистику
+
+boxplot.stats(iris_virginica$Sepal.Length)$out
+
+```
+
+# PCA
+
+Principal component analysis — це метод зменшення вимірів, що дозволяє представити багатовимірні дані на двовимірній площині. Хоча цей метод в першу чергу використовується для подальшого статистичного аналізу даних, для біоінформатиків важливий метод, який дозволяє візуально побачити складні дані, якими ми зазвичай оперуємо і подивитись, як різні категорії в розподілі групуються і відносятся одна до одної.
+
+Хоча цей метод широко використовується, він не є ідеальним і багато статистиків і біоінформатиків рекомендують заміну цьому методу, наприклад, використовуючи t-SNE.
+
+```{r pca, echo=FALSE}
+
+iris_without_categories <- iris[,1:4] # прибираємо дискретні дані
+
+df_pca <- prcomp(iris_without_categories, 
+                 scale=TRUE)
+PC1 <- df_pca$x[,1]
+PC2 <- df_pca$x[,2]
+
+summary(df_pca) # Proportion of Variance
+
+ggplot(data = iris, aes(x = PC1, y = PC2)) +
+  geom_point(aes(col=Species))+ 
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+
+```
+
+# t-SNE
+
+t-distributed stochastic neighbourhood embedding — ще один метод зменшення вимірів. Цей метод в першу чергу використовується для візуалізації і може бути використаним замість PCA. Як у PCA, так і у t-SNE є ряд своїх переваг та недоліків.
+
+Так, t-SNE є рандомізованим алгоритмом, в результаті якого кожен раз коли ви його запускатимете, будете отримувати різні результати і він краще показує локальну структуру кожного з кластерів даних, аніж глобальну структуру між різними кластерами (на відміну від PCA). Однак t-SNE краще справляється з викидами (outliers) і є первинно методом візуалізації.
+
+
+``` {r tsne, echo=FALSE}
+
+iris_unique <- unique(iris) # t-SNE потребує, щоб в наборі даних не було повторів
+
+iris_matrix <- as.matrix(iris_unique[,1:4])
+tsne_out <- Rtsne(iris_matrix)
+tsne_plot <- data.frame(x = tsne_out$Y[,1], 
+                        y = tsne_out$Y[,2],
+                        Species = iris_unique$Species)
+
+ggplot(tsne_plot, label=Species) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2") +
+  geom_point(aes(x=x,y=y, col = Species))
+
+```
