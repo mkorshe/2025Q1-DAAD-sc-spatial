@@ -325,14 +325,12 @@ pred_probs <- predict(model, testData, type = "prob")
 conf_matrix <- confusionMatrix(predictions, testData$Class)
 f1_score <- 2 * (conf_matrix$byClass["Precision"] * conf_matrix$byClass["Recall"]) / 
   (conf_matrix$byClass["Precision"] + conf_matrix$byClass["Recall"])
-auc <- roc(testData$Class, pred_probs[, 2])$auc
 ```
 
 # Print results
 ```{r}
 print(conf_matrix)
 cat("F1 Score:", f1_score, "\n")
-cat("AUC:", auc, "\n")
 ```
 ```{r}
 pred_probs_train <- predict(model, trainData, type = "prob")
