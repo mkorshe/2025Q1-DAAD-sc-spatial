@@ -1,0 +1,370 @@
+---
+title: "IntroToML"
+author: "Valeriia"
+date: "2025-02-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Installing packages
+
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("DNABarcodes") 
+```
+```{r}
+install.packages("tidyverse")  # Install if not already installed
+
+```
+```{r}
+install.packages("caret")
+install.packages("randomForest")
+install.packages("pROC")
+```
+```{r}
+install.packages("kernelshap")
+install.packages("shapviz")
+```
+
+
+## Loading packages
+
+```{r}
+library(DNABarcodes)
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(pROC)
+library(kernelshap)
+library(shapviz)
+```
+
+## Generate data
+
+```{r}
+#Set key parameters
+num_sequences <- 100
+sequences_length <- 10
+set.seed(123)  # For reproducibility
+
+```
+
+
+### Barcodes
+
+```{r}
+# Generate random DNA barcodes
+
+#random_barcodes <- create.dnabarcodes(sequences_length, dist=4, metric="hamming")
+
+# Print barcodes
+print(random_barcodes[1:5])
+
+random_barcodes_table<- data.frame(sequences = unlist(random_barcodes[1:num_sequences]))
+
+```
+
+```{r}
+write_csv(random_barcodes_table, "barcode_sequences.csv")
+```
+
+
+### UMI
+
+```{r}
+#define UMI-generating function
+randDNA = function(n)
+   paste(sample(c("A","C","T","G"), n, replace=TRUE), collapse="")
+
+```
+
+```{r}
+# Generate 100 sequences using tidyverse
+umi_sequences <- tibble(
+  sequences = map_chr(rep(sequences_length, num_sequences), randDNA)
+)
+
+# Print results
+print(umi_sequences[1:5,])
+```
+
+```{r}
+write_csv(umi_sequences, "umi_sequences.csv")
+
+```
+
+```{r}
+data<- bind_rows(random_barcodes_table, umi_sequences)
+data$Class<-c(rep(1, 100), rep(0, 100))
+```
+
+```{r}
+write_csv(data, "data.csv")
+
+```
+
+
+## Load the data
+
+```{r}
+data<-read_csv("data.csv")
+```
+
+
+
+## Features extraction
+
+```{r}
+nucleotides <- c("A", "T", "C", "G")
+dinucleotides <- as.vector(outer(nucleotides, nucleotides, paste0))
+print(dinucleotides)
+```
+
+
+```{r}
+# Function to extract dinucleotide frequencies from a sequence
+extract_dinucleotide_features <- function(sequence) {
+  nucleotides <- c("A", "T", "C", "G")
+  dinucleotides <- outer(nucleotides, nucleotides, paste0)
+  counts <- sapply(dinucleotides, function(d) sum(gregexpr(d, sequence, fixed = TRUE)[[1]] > 0))
+  return(as.numeric(counts) / nchar(sequence))
+}
+```
+
+
+```{r}
+load_features_matrix <- function(data) {
+  feature_matrix <- t(sapply(data$sequences, extract_dinucleotide_features))
+  return(data.frame(feature_matrix, Class = as.factor(data$Class)))
+}
+```
+
+```{r}
+data.features <- load_features_matrix(data)
+colnames(data.features)<-c(dinucleotides,"Class")
+```
+
+```{r}
+# Make a copy
+data.features.norm<-data.features
+
+# Scale data (normalize features)
+preproc <- preProcess(data.features.norm[, -ncol(data.features.norm)], method = c("center", "scale"))
+
+# Apply normalization
+data.features.norm[, -ncol(data.features.norm)] <- predict(preproc, data.features.norm[, -ncol(data.features.norm)])
+```
+
+
+## Feature selection using Recursive Feature Elimination (RFE)
+
+```{r}
+control <- rfeControl(functions = rfFuncs, method = "cv", number = 5)
+selected_features <- rfe(data.features.norm[, -ncol(data.features.norm)], data.features.norm$Class, size=10, rfeControl = control)
+
+#select useful features
+data.features.sel <- data.features.norm[, c(selected_features$optVariables, "Class")]
+```
+
+## Plot feature importance
+
+```{r}
+# Extract feature importance scores
+feature_importance <- varImp(selected_features)
+
+# Convert to a data frame for plotting
+importance_df <- data.frame(Feature = rownames(feature_importance),
+                            Importance = feature_importance$Overall)
+
+# Sort features by importance
+importance_df <- importance_df[order(importance_df$Importance, decreasing = TRUE), ]
+
+# Plot feature importance
+ggplot(importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  ggtitle("Feature Importance from RFE") +
+  xlab("Features") +
+  ylab("Importance Score")
+```
+
+
+Назад до презентації ;)
+
+## Unsupervised learning
+
+
+```{r}
+# Perform K-means clustering
+k <- 2
+kmeans_result <- kmeans(data.features.sel[,-ncol(data.features.sel)], centers = k)
+
+# Display the clustering result
+#print(kmeans_result[1:10])
+
+# Access cluster centers
+#print(kmeans_result$centers[1:10])
+
+# Access cluster assignments for each sample
+#print(kmeans_result$cluster[1:10])
+
+# Plot the clustering result (first 2 features for visualization)
+data_with_clusters <- data.frame(data.features.sel, cluster = as.factor(kmeans_result$cluster))
+```
+
+
+```{r}
+# Perform PCA
+pca_model_real <- prcomp(data.features.sel[, -ncol(data.features.sel)], center = TRUE, scale. = TRUE)
+
+# Create a data frame for plotting
+pca_data_real <- data.frame(PC1 = pca_model_real$x[, 1], PC2 = pca_model_real$x[, 2], Class = data.features.sel$Class)
+
+# Plot PCA
+ggplot(pca_data_real, aes(x = PC1, y = PC2, color = Class)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  ggtitle("PCA of DNA Sequences") +
+  xlab("Principal Component 1") +
+  ylab("Principal Component 2")
+
+# Perform PCA
+pca_model_kmn <- prcomp(data_with_clusters[, -c(17,18)], center = TRUE, scale. = TRUE)
+
+# Create a data frame for plotting
+pca_data_kmn <- data.frame(PC1 = pca_model_kmn$x[, 1], PC2 = pca_model_kmn$x[, 2], cluster = data_with_clusters$cluster)
+
+# Plot PCA
+ggplot(pca_data_kmn, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  ggtitle("PCA of DNA Sequences") +
+  xlab("Principal Component 1") +
+  ylab("Principal Component 2")+
+  scale_color_manual(breaks = unique(pca_data_kmn$cluster), values = c("#619CFF","coral"))
+```
+
+## What if we don't know number of clusters in data?
+
+```{r}
+# Function to compute total within-cluster sum of squares (WCSS) for different k values
+elbow_method <- function(data, max_k = 10) {
+  wcss <- numeric(max_k)  # Vector to store WCSS for each k
+
+  for (k in 1:max_k) {
+    set.seed(123)  # For reproducibility
+    kmeans_model <- kmeans(data, centers = k)
+    wcss[k] <- kmeans_model$tot.withinss  # Store WCSS
+  }
+
+  # Create an elbow plot
+  elbow_plot <- ggplot(data.frame(k = 1:max_k, WCSS = wcss), aes(x = k, y = WCSS)) +
+    geom_point(size = 3) +
+    geom_line() +
+    ggtitle("Elbow Method for Optimal k") +
+    xlab("Number of Clusters (k)") +
+    ylab("Total Within-Cluster Sum of Squares (WCSS)") +
+    theme_minimal()
+
+  print(elbow_plot)
+}
+
+# Example Usage: Run Elbow Method on Scaled Data (Excluding Class Column) # Scale numeric features
+elbow_method(data.features.sel, max_k = 15)  # Set max_k as needed
+
+```
+
+
+
+## Train-test split
+
+```{r}
+trainIndex <- createDataPartition(data.features.sel$Class, p = 0.8, list = FALSE)
+trainData <- data.features.sel[trainIndex, ]
+testData <- data.features.sel[-trainIndex, ]
+```
+
+# Scale data (normalize features) in each split
+
+```{r}
+
+preproc <- preProcess(trainData[, -ncol(trainData)], method = c("center", "scale"))
+
+# Apply normalization to train and test data
+trainData[, -ncol(trainData)] <- predict(preproc, trainData[, -ncol(trainData)])
+testData[, -ncol(testData)] <- predict(preproc, testData[, -ncol(testData)])
+
+```
+
+# Hyperparameter tuning
+
+```{r}
+train_control <- trainControl(method = "cv", number = 5, search = "grid")
+tune_grid <- expand.grid(mtry = c(2, 4, 6, 8))
+model <- train(Class ~ ., data = trainData, method = "rf", trControl = train_control, tuneGrid = tune_grid, ntree=1000)
+print(model)
+```
+
+# Make predictions
+
+```{r}
+predictions <- predict(model, testData)
+pred_probs <- predict(model, testData, type = "prob")
+```
+
+# Compute performance metrics
+
+```{r}
+conf_matrix <- confusionMatrix(predictions, testData$Class)
+f1_score <- 2 * (conf_matrix$byClass["Precision"] * conf_matrix$byClass["Recall"]) / 
+  (conf_matrix$byClass["Precision"] + conf_matrix$byClass["Recall"])
+```
+
+# Print results
+```{r}
+print(conf_matrix)
+cat("F1 Score:", f1_score, "\n")
+```
+```{r}
+pred_probs_train <- predict(model, trainData, type = "prob")
+```
+
+
+```{r}
+roc_curve_train <- roc(data.features.sel[trainIndex, c("Class")], pred_probs_train$"1")
+auc_value_train <- auc(roc_curve_train)
+# Plot ROC Curve
+plot(roc_curve_train, col = "blue", main = "ROC Curve", print.auc = TRUE)
+
+# Add AUC Value to the Plot
+cat("AUC:", auc_value_train, "\n")
+
+#Test
+
+# Compute ROC Curve
+roc_curve_test <- roc(data.features.sel[-trainIndex, c("Class")], pred_probs$"1")
+auc_value_test <- auc(roc_curve_test)
+# Plot ROC Curve
+plot(roc_curve_test, col = "blue", main = "ROC Curve", print.auc = TRUE)
+
+# Add AUC Value to the Plot
+cat("AUC:", auc_value_test, "\n")
+
+
+```
+
+```{r}
+s <- kernelshap(model, X = data.features.sel[sample(nrow(data.features.sel), 100), -ncol(data.features.sel)],type = "prob") 
+sv <- shapviz(s)
+```
+```{r}
+sv_importance(sv, kind = "bee")  
+```
+

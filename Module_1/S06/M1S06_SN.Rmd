@@ -1,0 +1,183 @@
+---
+title: "M1S06 RMarkdown та звітність по проєкту"
+date: "2025-01-31"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(DT)
+library(plotly)
+library(rstatix)
+library(ggpubr)
+
+
+# Інформація щодо встановлених бібліотек
+installed_packages <- installed.packages()[names(sessionInfo()$otherPkgs), "Version"]
+installed_packages <- data.frame(names(installed_packages), installed_packages)
+r_version <- c("R",strsplit(version[['version.string']], ' ')[[1]][3])
+installed_packages <- rbind(r_version, installed_packages)
+rownames(installed_packages) <- NULL
+colnames(installed_packages) <- c("Пакет або ПЗ", "Версія")
+
+
+```
+
+
+
+# Вступ
+
+Вступ — це важлива частина вашого репорту. Тут слід зазначити загальні відомості про датасет, який ви аналізуєте, мету вашого аналізу та ваші методи.
+
+Щодо відомостей про датасет, слід вказати не тільки що там знаходиться, а й як він був отриманий (методи та матеріали) та, за можливості та необхідності, вказати на іншу релевантну інформацію.
+
+Щодо методів, релевантно зазначити версії пакетів, що використовувались при аналізі. Це можна зробити наприклад за допомогою функції datatable з пакету DT.
+
+```{r datatable_packages, echo=FALSE}
+
+datatable(installed_packages, extensions = "Buttons", options = list(dom = 'Blfrtip',
+                           buttons = c('copy', 'csv', 'excel', 'pdf', 'print')))
+                           
+
+```
+
+Також слід надати інформацію щодо метаданих вашого датасету.
+
+
+# Контроль якості
+
+Важливим етапом в створенні репорту є QC (Quality Control, контроль якості). Методи контролю якості сильно залежать від того, який саме аналіз даних ви будете проводити, але є певні принципи, що допоможуть вам у візуалізації та презентації ваших результатів (в тому числі результатів контролю якості).
+
+# Boxplot
+
+Одним з ключових графіків для біоінформатики є коробковий графік, або box plot. Він дозволяє швидко оглянути набір даних. В коробковому графіку можна побачити як викиди (outliers), так і розподіл графіка на мінімальне та максимальне значення, а також медіану і перший і третій квартилі.
+
+```{r ggplot_boxplot, echo=FALSE}
+
+x <- ggplot(data=iris,  aes(x=Species, y=Sepal.Width, color = Species)) + 
+  geom_boxplot() + # коробковий графік
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal()
+
+x
+
+```
+
+
+# Інтерактивні графіки
+
+Одним з важливих особливостей використання html-формату як фінального формату для ваших репортів є можливість використання інтерактивних графіків, котрі можуть значно покращити можливість інтерпретації і комунікації результатів досліджень.
+
+``` {r interactive, echo=FALSE}
+
+ggplotly(x)
+
+```
+
+
+# Violin Plot та параметричність
+
+Хоча коробковий графік дозволяє побачити певні важливі маркери розподілу даних у наборі, він не дозволяє побачити сам розподіл. Для цього застосовується скрипковий графік (violin plot). ggplot2 також дозволяє об'єднувати декілька графіків в один для більш зручної візуалізації.
+
+Також до графіків можна додавати різну додаткову інформацію, наприклад, p-value статистичного тесту для перевірки чи статистично достовірна різниця між двома чи більше наборами даних. Для того, щоб визначити, який тест варто застосувати (параметричний t-test Ст'юдента або непараметричний тест Уілкоксона) слід перевірити чи відповідають наші набори даних нормальному розподілу. Це можливо зробити за допомогою теста Шапіро-Вілка.
+
+``` {r violin, echo=FALSE, warning=FALSE}
+library(ggpubr)
+
+significance_df <- iris %>% group_by(Species) %>% shapiro_test(Sepal.Length) # тест Шапіро-Вілка
+
+# significance_df # p-value вище 0.05 означає що розподіл нормальний
+
+
+# створюємо датафрейм з даними щодо p-value. Оскільки розподіл нормальний, то можемо використати t-test (у протилежному випадку використали б wilcox_test)
+
+pvalue_data <- iris %>%
+  t_test(Sepal.Width ~ Species) %>%
+  add_significance()
+
+pvalue_data <- pvalue_data %>% add_xy_position(x = "Species")
+
+
+x <- ggplot(data=iris,  aes(x=Species, y=Sepal.Width, color = Species)) + 
+  geom_boxplot() +
+  geom_violin() + # скрипковий графік
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() + 
+  stat_pvalue_manual(pvalue_data, label = "T-test, p = {p}")
+
+x
+
+# працює не дуже, треба інший підхід
+# ggplotly(x)
+
+```
+
+
+# Результати {.tabset}
+
+Як і методи оцінки якості, представлення результатів залежить від типу аналізу, що ви будете проводити. Дуже часто, однак, в біоінформатиці треба проводити багато аналогічних порівнянь чи представлень аналогічних результатів, що може сильно зменшити UX вашого репорту. Напевно, найінтуітивніший вихід з цієї ситуації — це створення вкладок, що в RMarkdown виконується за допомогою ".tabset".
+
+```{r results, echo=FALSE, fig.height=6, fig.width=5, warning = FALSE, results='asis'}
+
+mtcarsmod <- mtcars[order(mtcars$cyl),]
+
+listmtcarsmod <- list(mtcarsmod[mtcarsmod$cyl==4,],
+                      mtcarsmod[mtcarsmod$cyl==6,],
+                      mtcarsmod[mtcarsmod$cyl==8,])
+
+names(listmtcarsmod) <- c("four", "six", "eight")
+
+results_permutations <- as.data.frame(combn(unique(as.character(names(listmtcarsmod))),2))
+
+
+
+
+for (i in 1:length(colnames(results_permutations))) {
+  first_value <- results_permutations[,i][1]
+  second_value <- results_permutations[,i][2]
+  
+  tempdf <- rbind(listmtcarsmod[[first_value]],
+                  listmtcarsmod[[second_value]])
+  
+  tempdf$cylfact <- as.factor(tempdf$cyl)
+  
+   cat("## ", first_value, " vs ", second_value, " \n")
+  
+  
+  x <- ggplot(data=tempdf,  aes(x=cylfact, y=mpg, color = cylfact)) + 
+  geom_boxplot() + # коробковий графік
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() 
+  
+  print(htmltools::tagList(plotly::ggplotly(x)))
+  
+  
+  # Без print(htmltools::taglist()) не працює
+  print(htmltools::tagList(DT::datatable(tempdf, extensions = "Buttons", options = list(dom = 'Blfrtip',buttons = c('copy', 'csv', 'excel', 'pdf', 'print')))))
+  
+  cat("\n\n")
+}
+
+```
+
+
+
+# Обговорення
+
+Довжина обговорення значно залежить від того, скільки аналізу ваших результатів ви провели і в деяких випадках (якщо ви виключно провели аналіз і не робили подальших досліджень) його може не бути. Як і щодо інших розділів, основна ціль обговорення — це комунікація даних, результатів, або припущень і воно повинно відповідати цій цілі.
+
+
+# Висновки
+
+В кінці кожного репорту важливо вказати ваші висновки а також прогнозовані подальші дії щодо вашого експерименту або дослідження, якщо такі дії є. Вцілому, структура репорту в багатьох моментах нагадує структуру академічної статті.
+
+# Референси
+
+В кінці репорту слід зазначити референси, що були використані
