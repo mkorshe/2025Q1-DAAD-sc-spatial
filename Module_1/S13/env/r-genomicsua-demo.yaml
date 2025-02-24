@@ -1,0 +1,11 @@
+name: r-genomicsua-demo
+channels:
+  - conda-forge
+dependencies:
+  - jupyter
+  - conda-forge::r-irkernel
+  - ca-certificates
+  - certifi
+  - openssl
+  - conda-forge::r-seurat
+  - bioconda::r-presto
