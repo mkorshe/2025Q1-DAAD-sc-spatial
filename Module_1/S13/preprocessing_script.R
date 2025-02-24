@@ -8,7 +8,7 @@
 cat("🚀 Script execution started successfully!\n\n")
 
 # [Step 1/6] Setup and Environment Preparation 🛠️
-setwd("/research/lab_reiberger/users/opetrenko/tmp")
+setwd("/your/wd/")
 if (dir.exists("./outputs")) {
   unlink("./outputs", recursive = TRUE)
 }
